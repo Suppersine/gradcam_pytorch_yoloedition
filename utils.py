@@ -204,6 +204,38 @@ def normalize(tensor, mean, std):
     return tensor.sub(mean).div(std)
 
 
+def find_yolo_layer(model_arch, layer_name):
+    """
+    Locate the specified layer in the YOLO model architecture.
+
+    Args:
+        model_arch (torch.nn.Module): The YOLO model architecture.
+        layer_name (str): The name of the layer to locate (e.g., 'model.23' or 'backbone.0').
+
+    Returns:
+        target_layer (torch.nn.Module): The requested layer/module.
+
+    Raises:
+        ValueError: If the specified layer is not found.
+    """
+    # Split the layer_name into components to handle hierarchical access (e.g., 'model.23' -> ['model', '23'])
+    hierarchy = layer_name.split('.')
+
+    # Start with the top-level model architecture
+    target_layer = model_arch
+
+    try:
+        for part in hierarchy:
+            if part.isdigit():  # If the part is a digit, it's an index for Sequential layers
+                target_layer = target_layer[int(part)]  # Access the layer by index
+            else:  # If the part is a string, use getattr to access the attribute (e.g., 'model', 'backbone')
+                target_layer = getattr(target_layer, part)
+    except (KeyError, IndexError, AttributeError) as e:
+        raise ValueError(f"Layer '{layer_name}' not found in YOLO model: {e}")
+
+    return target_layer
+
+
 class Normalize(object):
     def __init__(self, mean, std):
         self.mean = mean
