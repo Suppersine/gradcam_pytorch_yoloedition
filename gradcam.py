@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from utils import find_alexnet_layer, find_vgg_layer, find_resnet_layer, find_densenet_layer, find_squeezenet_layer, find_yolo_layer
+from utils import find_alexnet_layer, find_vgg_layer, find_resnet_layer, find_densenet_layer, find_squeezenet_layer, find_yolo_layer, detupler
 
 
 class GradCAM(object):
@@ -86,10 +86,17 @@ class GradCAM(object):
         b, c, h, w = input.size()
 
         logit = self.model_arch(input)
-        if class_idx is None:
-            score = logit[:, logit.max(1)[-1]].squeeze()
+
+        print(type(logit))
+        print(len(logit))  # If it's a tuple or list
+        print([l.shape for l in logit])  # For each element in the tuple or list
+        
+        if isinstance(logit, tuple):
+            # Extract class probabilities (or logits) from the tuple
+            class_logits = logit[1]  # Assuming class probabilities are at index 1
+            score = class_logits[:, class_idx].squeeze() if class_idx is not None else class_logits.max(1)[-1].squeeze()
         else:
-            score = logit[:, class_idx].squeeze()
+            score = logit[:, class_idx].squeeze() if class_idx is not None else logit.max(1)[-1].squeeze()
 
         self.model_arch.zero_grad()
         score.backward(retain_graph=retain_graph)
@@ -101,7 +108,7 @@ class GradCAM(object):
         #alpha = F.relu(gradients.view(b, k, -1)).mean(2)
         weights = alpha.view(b, k, 1, 1)
 
-        saliency_map = (weights*activations).sum(1, keepdim=True)
+        saliency_map = (weights * activations).sum(1, keepdim=True)
         saliency_map = F.relu(saliency_map)
         saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
         saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
