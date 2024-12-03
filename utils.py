@@ -203,28 +203,20 @@ def normalize(tensor, mean, std):
 
     return tensor.sub(mean).div(std)
 
-def detupler(data):
+def detupler(logit, index=0):
     """
-    Extracts a tensor from a tuple or list of outputs. 
-    If the input is already a tensor, it is returned unchanged.
+    Extracts the tensor from a tuple or list of tensors.
 
     Args:
-        data (tuple, list, or torch.Tensor): The input data to process.
+        logit (tuple/list/tensor): Model output.
+        index (int): Index to extract if logit is a tuple or list.
 
     Returns:
-        torch.Tensor: The extracted tensor suitable for Grad-CAM.
+        tensor: The extracted tensor.
     """
-    if isinstance(data, (tuple, list)):
-        # Assuming the first element is the relevant tensor (adjust index as needed)
-        tensor = data[0]
-        if not isinstance(tensor, torch.Tensor):
-            raise ValueError("The extracted element is not a torch.Tensor.")
-        return tensor
-    elif isinstance(data, torch.Tensor):
-        # Input is already a tensor
-        return data
-    else:
-        raise TypeError("Input must be a tuple, list, or torch.Tensor.")
+    if isinstance(logit, (tuple, list)):
+        return logit[index]  # Return the tensor at the specified index
+    return logit  # If already a tensor, return as-is
 
 
 def find_yolo_layer(model_arch, layer_name):
