@@ -87,9 +87,13 @@ class GradCAM(object):
 
         logit = self.model_arch(input)
 
+        i = 0
         print(type(logit))
         print(len(logit))  # If it's a tuple or list
-        print([l.shape for l in logit])  # For each element in the tuple or list
+        for l in logit:
+            i+=1
+            print(i)
+            print(l)  # For each element in the tuple or list
         
         if isinstance(logit, tuple):
             # Extract class probabilities (or logits) from the tuple
