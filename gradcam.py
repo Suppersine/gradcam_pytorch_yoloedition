@@ -87,6 +87,10 @@ class GradCAM(object):
 
         logit = self.model_arch(input)
 
+        if isinstance(logit, list):
+            # Assuming all elements in the list have the same shape
+            logit = torch.cat(logit, dim=0) # Concatenate along dimension 0
+        
         i = 0
         print(type(logit))
         print(len(logit))  # If it's a tuple or list
