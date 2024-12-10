@@ -86,43 +86,91 @@ class GradCAM(object):
         b, c, h, w = input.size()
 
         logit = self.model_arch(input)
-
-        if isinstance(logit, list):
-            # Assuming all elements in the list have the same shape
-            logit = torch.cat(logit, dim=0) # Concatenate along dimension 0
         
-        i = 0
-        print(type(logit))
-        print(len(logit))  # If it's a tuple or list
-        for l in logit:
-            i+=1
-            print(i)
-            print(l)  # For each element in the tuple or list
+        # Case 1: Raw feature map (logit[0])
+        score_rfm = logit[0].squeeze()
         
-        if isinstance(logit, tuple):
-            # Extract class probabilities (or logits) from the tuple
-            class_logits = logit[1]  # Assuming class probabilities are at index 1
-            score = class_logits[:, class_idx].squeeze() if class_idx is not None else class_logits.max(1)[-1].squeeze()
+        # Case 2: Objectness Scores (Small, Medium, Large, Average)
+        score_obj_small = logit[1][0][..., 4].squeeze()
+        score_obj_medium = logit[1][1][..., 4].squeeze()
+        score_obj_large = logit[1][2][..., 4].squeeze()
+        logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
+        score_obj_avg = logitbar[..., 4].squeeze()
+        
+        # Case 3: Class Probabilities (Small, Medium, Large, Average)
+        score_prob_small = logit[1][0][..., 5:].squeeze()
+        score_prob_medium = logit[1][1][..., 5:].squeeze()
+        score_prob_large = logit[1][2][..., 5:].squeeze()
+        score_prob_avg = logitbar[..., 5:].squeeze()
+        
+        # Dynamically select a mode
+        mode = input("Enter a YOLO pixelwise metric to evaluate:\n"
+                     "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large, 5.obj_avg,\n"
+                     "6.prob_small, 7.prob_medium, 8.prob_large, 9.prob_avg\n"
+                     "Your choice: ").strip()
+        
+        # Process the input to determine which score to use
+        if mode == '1':
+            score = score_rfm
+        elif mode == '2':
+            score = score_obj_small
+        elif mode == '3':
+            score = score_obj_medium
+        elif mode == '4':
+            score = score_obj_large
+        elif mode == '5':
+            score = score_obj_avg
+        elif mode == '6':
+            class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
+            if class_idx >= 0:
+                score = score_prob_small[..., class_idx].squeeze()
+            else:
+                score = score_prob_small.max(dim=-1)[0].squeeze()
+        elif mode == '7':
+            class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
+            if class_idx >= 0:
+                score = score_prob_medium[..., class_idx].squeeze()
+            else:
+                score = score_prob_medium.max(dim=-1)[0].squeeze()
+        elif mode == '8':
+            class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
+            if class_idx >= 0:
+                score = score_prob_large[..., class_idx].squeeze()
+            else:
+                score = score_prob_large.max(dim=-1)[0].squeeze()
+        elif mode == '9':
+            class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
+            if class_idx >= 0:
+                score = score_prob_avg[..., class_idx].squeeze()
+            else:
+                score = score_prob_avg.max(dim=-1)[0].squeeze()
         else:
-            score = logit[:, class_idx].squeeze() if class_idx is not None else logit.max(1)[-1].squeeze()
-
+            raise ValueError("Invalid choice! Please select a valid mode.")
+        
+        # Backpropagation and Grad-CAM computation
         self.model_arch.zero_grad()
         score.backward(retain_graph=retain_graph)
+        
+        # Get gradients and activations
         gradients = self.gradients['value']
         activations = self.activations['value']
         b, k, u, v = gradients.size()
-
+        
+        # Compute weights (global average pooling over gradients)
         alpha = gradients.view(b, k, -1).mean(2)
-        #alpha = F.relu(gradients.view(b, k, -1)).mean(2)
         weights = alpha.view(b, k, 1, 1)
-
+        
+        # Compute saliency map
         saliency_map = (weights * activations).sum(1, keepdim=True)
         saliency_map = F.relu(saliency_map)
         saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
+        
+        # Normalize the saliency map
         saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
         saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
-
+        
         return saliency_map, logit
+
 
     def __call__(self, input, class_idx=None, retain_graph=False):
         return self.forward(input, class_idx, retain_graph)
