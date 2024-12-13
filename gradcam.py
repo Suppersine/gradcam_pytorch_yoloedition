@@ -94,7 +94,10 @@ class GradCAM(object):
         score_obj_small = logit[1][0][..., 4].squeeze()
         score_obj_medium = logit[1][1][..., 4].squeeze()
         score_obj_large = logit[1][2][..., 4].squeeze()
-        logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
+        print(logit[1][0].size())
+        print(logit[1][1].size())
+        print(logit[1][2].size())
+        #logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
         score_obj_avg = logitbar[..., 4].squeeze()
         
         # Case 3: Class Probabilities (Small, Medium, Large, Average)
@@ -105,8 +108,8 @@ class GradCAM(object):
         
         # Dynamically select a mode
         mode = input("Enter a YOLO pixelwise metric to evaluate:\n"
-                     "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large, 5.obj_avg,\n"
-                     "6.prob_small, 7.prob_medium, 8.prob_large, 9.prob_avg\n"
+                     "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
+                     "5.prob_small, 6.prob_medium, 7.prob_large\n"
                      "Your choice: ").strip()
         
         # Process the input to determine which score to use
@@ -118,32 +121,24 @@ class GradCAM(object):
             score = score_obj_medium
         elif mode == '4':
             score = score_obj_large
-        elif mode == '5':
-            score = score_obj_avg
-        elif mode == '6':
+        elif mode == 5':
             class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
             if class_idx >= 0:
                 score = score_prob_small[..., class_idx].squeeze()
             else:
                 score = score_prob_small.max(dim=-1)[0].squeeze()
-        elif mode == '7':
+        elif mode == '6':
             class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
             if class_idx >= 0:
                 score = score_prob_medium[..., class_idx].squeeze()
             else:
                 score = score_prob_medium.max(dim=-1)[0].squeeze()
-        elif mode == '8':
+        elif mode == '7':
             class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
             if class_idx >= 0:
                 score = score_prob_large[..., class_idx].squeeze()
             else:
                 score = score_prob_large.max(dim=-1)[0].squeeze()
-        elif mode == '9':
-            class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
-            if class_idx >= 0:
-                score = score_prob_avg[..., class_idx].squeeze()
-            else:
-                score = score_prob_avg.max(dim=-1)[0].squeeze()
         else:
             raise ValueError("Invalid choice! Please select a valid mode.")
         
