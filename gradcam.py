@@ -121,7 +121,7 @@ class GradCAM(object):
             score = score_obj_medium
         elif mode == '4':
             score = score_obj_large
-        elif mode == 5':
+        elif mode == '5':
             class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
             if class_idx >= 0:
                 score = score_prob_small[..., class_idx].squeeze()
