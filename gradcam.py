@@ -97,8 +97,8 @@ class GradCAM(object):
         print(logit[1][0].size())
         print(logit[1][1].size())
         print(logit[1][2].size())
-        #logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
-        score_obj_avg = logitbar[..., 4].squeeze()
+        # logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
+        # score_obj_avg = logitbar[..., 4].squeeze()
         
         # Case 3: Class Probabilities (Small, Medium, Large, Average)
         score_prob_small = logit[1][0][..., 5:].squeeze()
