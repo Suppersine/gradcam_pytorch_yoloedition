@@ -106,12 +106,13 @@ class GradCAM(object):
         score_prob_large = logit[1][2][..., 5:].squeeze()
         # score_prob_avg = logitbar[..., 5:].squeeze()
         
-        # Dynamically select a mode
-        mode = input("Enter a YOLO pixelwise metric to evaluate:\n"
+        # Programically select a mode, 
+        """mode = input("Enter a YOLO pixel-wise metric to evaluate:\n"
                      "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
                      "5.prob_small, 6.prob_medium, 7.prob_large\n"
-                     "Your choice: ").strip()
-        
+                     "Your choice: ").strip()"""
+        mode = '1'
+
         # Process the input to determine which score to use
         if mode == '1':
             score = score_rfm
