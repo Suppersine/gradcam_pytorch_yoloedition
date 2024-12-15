@@ -37,11 +37,9 @@ class GradCAM(object):
 
         self.gradients = dict()
         self.activations = dict()
-
         def backward_hook(module, grad_input, grad_output):
             self.gradients['value'] = grad_output[0]
             return None
-
         def forward_hook(module, input, output):
             self.activations['value'] = output
             return None
@@ -66,101 +64,116 @@ class GradCAM(object):
             try:
                 input_size = model_dict['input_size']
             except KeyError:
-                print("Please specify size of input image in model_dict. e.g. {'input_size':(224, 224)}")
+                print("please specify size of input image in model_dict. e.g. {'input_size':(224, 224)}")
                 pass
             else:
                 device = 'cuda' if next(self.model_arch.parameters()).is_cuda else 'cpu'
                 self.model_arch(torch.zeros(1, 3, *(input_size), device=device))
-                print('Saliency map size:', self.activations['value'].shape[2:])
+                print('saliency_map size :', self.activations['value'].shape[2:])
 
-    def forward(self, input, class_idx=None, mode='1', retain_graph=False):
+
+
+    def forward(self, input, class_idx=None, mode ='1', retain_graph=False): #see mode selection below
         """
         Args:
             input: input image with shape of (1, 3, H, W)
-            class_idx (int): Class index for calculating Grad-CAM. If not specified,
-                the class with the highest model prediction score will be used.
-            mode (str): Specifies which YOLO metric to evaluate.
-                        Choices: '1' (rfm), '2' (obj_small), ..., '7' (prob_large).
-            retain_graph (bool): Whether to retain the computation graph after backpropagation.
-        Returns:
-            mask: Saliency map of the same spatial dimension as input.
-            logit: Model output.
+            class_idx (int): class index for calculating GradCAM.
+                    If not specified, the class index that makes the highest model prediction score will be used.
+        Return:
+            mask: saliency map of the same spatial dimension with input
+            logit: model output
         """
         b, c, h, w = input.size()
+
         logit = self.model_arch(input)
-
-        # Case 1: Raw Feature Map
+        
+        # Case 1: Raw feature map (logit[0])
         score_rfm = logit[0].squeeze()
-
-        # Case 2: Objectness Scores
+        
+        # Case 2: Objectness Scores (Small, Medium, Large, Average)
         score_obj_small = logit[1][0][..., 4].squeeze()
         score_obj_medium = logit[1][1][..., 4].squeeze()
         score_obj_large = logit[1][2][..., 4].squeeze()
-
-        # Average objectness score (logitbar)
-        logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
-        score_obj_avg = logitbar[..., 4].squeeze()
-
-        # Case 3: Class Probabilities
+        print(logit[1][0].size())
+        print(logit[1][1].size())
+        print(logit[1][2].size())
+        # logitbar = (logit[1][0] + logit[1][1] + logit[1][2]) / 3
+        # score_obj_avg = logitbar[..., 4].squeeze()
+        
+        # Case 3: Class Probabilities (Small, Medium, Large, Average)
         score_prob_small = logit[1][0][..., 5:].squeeze()
         score_prob_medium = logit[1][1][..., 5:].squeeze()
         score_prob_large = logit[1][2][..., 5:].squeeze()
-        score_prob_avg = logitbar[..., 5:].squeeze()
+        # score_prob_avg = logitbar[..., 5:].squeeze()
+        
+        # Programically select a mode, 
+        """mode = input("Enter a YOLO pixel-wise metric to evaluate:\n"
+                     "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
+                     "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
+                     "Your choice: ").strip()"""
 
-        # Determine score based on mode
-        if mode == '1':  # Raw feature map
+        # Process the input to determine which score to use
+        if mode == '1':
             score = score_rfm
-        elif mode == '2':  # Small objectness
+        elif mode == '2':
             score = score_obj_small
-        elif mode == '3':  # Medium objectness
+        elif mode == '3':
             score = score_obj_medium
-        elif mode == '4':  # Large objectness
+        elif mode == '4':
             score = score_obj_large
-        elif mode == '5':  # Average objectness
-            score = score_obj_avg
-        elif mode in ['6', '7', '8', '9']:  # Class probabilities
-            if mode == '6':
-                score_prob = score_prob_small
-            elif mode == '7':
-                score_prob = score_prob_medium
-            elif mode == '8':
-                score_prob = score_prob_large
-            elif mode == '9':
-                score_prob = score_prob_avg
-
+        elif mode == '5':
+            #class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
             if class_idx is not None:
-                score = score_prob[..., class_idx].squeeze()
+                score = score_prob_small[..., class_idx].squeeze()
             else:
-                score = score_prob.max(dim=-1)[0].squeeze()
+                score = score_prob_small.max(dim=-1)[0].squeeze()
+        elif mode == '6':
+            #class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
+            if class_idx is not None:
+                score = score_prob_medium[..., class_idx].squeeze()
+            else:
+                score = score_prob_medium.max(dim=-1)[0].squeeze()
+        elif mode == '7':
+            #class_idx = int(input("Enter class index (or -1 for max class probability): ").strip())
+            if class_idx is not None:
+                score = score_prob_large[..., class_idx].squeeze()
+            else:
+                score = score_prob_large.max(dim=-1)[0].squeeze()
+        elif mode == '8': #non-YOLO
+            if class_idx is None:
+                score = logit[:, logit.max(1)[-1]].squeeze()
+            else:
+                score = logit[:, class_idx].squeeze() 
         else:
-            raise ValueError(f"Invalid mode: {mode}")
-
+            raise ValueError("Invalid choice! Please select a valid mode.")
+        
         # Backpropagation and Grad-CAM computation
         self.model_arch.zero_grad()
         score.backward(retain_graph=retain_graph)
-
+        
         # Get gradients and activations
         gradients = self.gradients['value']
         activations = self.activations['value']
         b, k, u, v = gradients.size()
-
+        
         # Compute weights (global average pooling over gradients)
         alpha = gradients.view(b, k, -1).mean(2)
         weights = alpha.view(b, k, 1, 1)
-
+        
         # Compute saliency map
         saliency_map = (weights * activations).sum(1, keepdim=True)
         saliency_map = F.relu(saliency_map)
         saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
-
-        # Normalize saliency map
+        
+        # Normalize the saliency map
         saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
         saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
-
+        
         return saliency_map, logit
 
-    def __call__(self, input, class_idx=None, mode='1', retain_graph=False):
-        return self.forward(input, class_idx, mode, retain_graph)
+
+    def __call__(self, input, class_idx=None, retain_graph=False):
+        return self.forward(input, class_idx, retain_graph)
 
 
 class GradCAMpp(GradCAM):
