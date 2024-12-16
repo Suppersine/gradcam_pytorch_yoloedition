@@ -73,7 +73,7 @@ class GradCAM(object):
 
 
 
-    def forward(self, input, class_idx=None, mode ='1', retain_graph=False): #see mode selection below
+    def forward(self, input, class_idx=None, mode='1', retain_graph=False): #see mode selection below
         """
         Args:
             input: input image with shape of (1, 3, H, W)
@@ -112,9 +112,7 @@ class GradCAM(object):
                      "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
                      "Your choice: ").strip()"""
 
-        #hardcoded for troubleshooting purposes
         mode = '2'
-        #mode = '5'
 
         # Process the input to determine which score to use
         if mode == '1':
@@ -176,8 +174,8 @@ class GradCAM(object):
         return saliency_map, logit
 
 
-    def __call__(self, input, class_idx=None, retain_graph=False):
-        return self.forward(input, class_idx, retain_graph)
+    def __call__(self, input, class_idx=None, mode='1', retain_graph=False):
+        return self.forward(input, class_idx, mode, retain_graph)
 
 
 class GradCAMpp(GradCAM):
