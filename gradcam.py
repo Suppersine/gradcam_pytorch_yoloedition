@@ -112,6 +112,10 @@ class GradCAM(object):
                      "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
                      "Your choice: ").strip()"""
 
+        #hardcoded for troubleshooting purposes
+        mode = '2'
+        #mode = '5'
+
         # Process the input to determine which score to use
         if mode == '1':
             score = score_rfm
