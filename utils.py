@@ -2,6 +2,55 @@ import cv2
 import numpy as np
 import torch
 
+
+def logitprocessor(logit, yolomode='1'):
+    # Case 1: Raw Feature Map
+    score_rfm = logit[0].squeeze().mean()  # Global average
+    
+    # Case 2: Objectness Scores
+    score_obj_small = logit[1][0][..., 4].squeeze().max()  # Max objectness
+    score_obj_medium = logit[1][1][..., 4].squeeze().max()
+    score_obj_large = logit[1][2][..., 4].squeeze().max()
+    
+    # Case 3: Class Probabilities
+    if class_idx is not None:
+        # For a specific class
+        score_prob_small = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
+        score_prob_medium = logit[1][1][..., 5:].squeeze()[..., class_idx].max()
+        score_prob_large = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
+    else:
+        # Max probability across all classes
+        score_prob_small = logit[1][0][..., 5:].squeeze().max()
+        score_prob_medium = logit[1][1][..., 5:].squeeze().max()
+        score_prob_large = logit[1][2][..., 5:].squeeze().max()
+
+    # Case 4: non-YOLO models
+    if class_idx is None:
+        score_nonyolo = logit[:, logit.max(1)[-1]].squeeze()
+    else:
+        score_nonyolo = logit[:, class_idx].squeeze()
+    
+    # Programmatically select score based on mode
+    if yolomode == '1':
+        score = score_rfm
+    elif yolomode == '2':
+        score = score_obj_small
+    elif yolomode == '3':
+        score = score_obj_medium
+    elif yolomode == '4':
+        score = score_obj_large
+    elif yolomode == '5':
+        score = score_prob_small
+    elif yolomode == '6':
+        score = score_prob_medium
+    elif yolomode == '7':
+        score = score_prob_large
+    elif yolomode == '8':  # Non-YOLO models
+        score = score_nonyolo
+    else:
+        raise ValueError("Invalid mode! Choose a valid mode.")
+
+
 def visualize_cam(mask, img):
     """Make heatmap from mask and synthesize GradCAM result image using heatmap and img.
     Args:
@@ -202,21 +251,6 @@ def normalize(tensor, mean, std):
     std = torch.FloatTensor(std).view(1, 3, 1, 1).expand_as(tensor).to(tensor.device)
 
     return tensor.sub(mean).div(std)
-
-def detupler(logit, index=0):
-    """
-    Extracts the tensor from a tuple or list of tensors.
-
-    Args:
-        logit (tuple/list/tensor): Model output.
-        index (int): Index to extract if logit is a tuple or list.
-
-    Returns:
-        tensor: The extracted tensor.
-    """
-    if isinstance(logit, (tuple, list)):
-        return logit[index]  # Return the tensor at the specified index
-    return logit  # If already a tensor, return as-is
 
 
 def find_yolo_layer(model_arch, layer_name):
