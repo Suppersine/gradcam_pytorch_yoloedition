@@ -78,7 +78,7 @@ class GradCAM(object):
         logit = self.model_arch(input)
         
         try:
-            score = logitprocessor(logit, yolomode = yolomode, , class_idx = class_idx)
+            score = logitprocessor(logit, yolomode = yolomode, class_idx = class_idx)
             """Enter a YOLO pixel-wise metric to evaluate:\n"
              "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
              "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
