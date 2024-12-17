@@ -45,6 +45,7 @@ def logitprocessor(logit, yolomode, class_idx = None):
     else:
         raise ValueError("Invalid mode! Choose a valid mode.")
 
+    return score
 
 def visualize_cam(mask, img):
     """Make heatmap from mask and synthesize GradCAM result image using heatmap and img.
