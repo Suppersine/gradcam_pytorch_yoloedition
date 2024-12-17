@@ -112,8 +112,8 @@ class GradCAM(object):
 
 
 
-    def __call__(self, input, class_idx=None, mode='1', retain_graph=False):
-        return self.forward(input, class_idx, mode, retain_graph)
+    def __call__(self, input, class_idx=None, yolomode='1', retain_graph=False):
+        return self.forward(input, class_idx, yolomode, retain_graph)
 
 
 
