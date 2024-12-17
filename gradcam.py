@@ -73,12 +73,12 @@ class GradCAM(object):
 
 
 
-    def forward(self, input, class_idx=None, mode='1', retain_graph=False):
+    def forward(self, input, class_idx=None, yolomode='8', retain_graph=False):
         b, c, h, w = input.size()
         logit = self.model_arch(input)
         
         try:
-            score = logitprocessor(logit, yolomode = mode)
+            score = logitprocessor(logit, yolomode = yolomode, , class_idx = class_idx)
             """Enter a YOLO pixel-wise metric to evaluate:\n"
              "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
              "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
@@ -116,6 +116,7 @@ class GradCAM(object):
         return self.forward(input, class_idx, mode, retain_graph)
 
 
+
 class GradCAMpp(GradCAM):
     """Calculate GradCAM++ salinecy map.
 
@@ -145,7 +146,7 @@ class GradCAMpp(GradCAM):
     def __init__(self, model_dict, verbose=False):
         super(GradCAMpp, self).__init__(model_dict, verbose)
 
-    def forward(self, input, class_idx=None, retain_graph=False):
+    def forward(self, input, class_idx=None, yolomode='8', retain_graph=False):
         """
         Args:
             input: input image with shape of (1, 3, H, W)
@@ -160,7 +161,7 @@ class GradCAMpp(GradCAM):
         logit = self.model_arch(input)
 
         try:
-            score = logitprocessor(logit, yolomode = mode)
+            score = logitprocessor(logit, yolomode = yolomode, class_idx = class_idx)
             """Enter a YOLO pixel-wise metric to evaluate:\n"
              "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
              "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
