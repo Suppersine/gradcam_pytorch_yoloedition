@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 
-def logitprocessor(logit, yolomode='8'):
+def logitprocessor(logit, yolomode='8', , class_idx = None):
     # Case 1: Raw Feature Map
     score_rfm = logit[0].squeeze().mean()  # Global average
     
