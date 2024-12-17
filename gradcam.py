@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from utils import find_alexnet_layer, find_vgg_layer, find_resnet_layer, find_densenet_layer, find_squeezenet_layer, find_yolo_layer, detupler
+from utils import find_alexnet_layer, find_vgg_layer, find_resnet_layer, find_densenet_layer, find_squeezenet_layer, find_yolo_layer, logitprocessor
 
 
 class GradCAM(object):
@@ -77,48 +77,14 @@ class GradCAM(object):
         b, c, h, w = input.size()
         logit = self.model_arch(input)
         
-        # Case 1: Raw Feature Map
-        score_rfm = logit[0].squeeze().mean()  # Global average
-    
-        # Case 2: Objectness Scores
-        score_obj_small = logit[1][0][..., 4].squeeze().max()  # Max objectness
-        score_obj_medium = logit[1][1][..., 4].squeeze().max()
-        score_obj_large = logit[1][2][..., 4].squeeze().max()
-    
-        # Case 3: Class Probabilities
-        if class_idx is not None:
-            # For a specific class
-            score_prob_small = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
-            score_prob_medium = logit[1][1][..., 5:].squeeze()[..., class_idx].max()
-            score_prob_large = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
-        else:
-            # Max probability across all classes
-            score_prob_small = logit[1][0][..., 5:].squeeze().max()
-            score_prob_medium = logit[1][1][..., 5:].squeeze().max()
-            score_prob_large = logit[1][2][..., 5:].squeeze().max()
-    
-        # Programmatically select score based on mode
-        if mode == '1':
-            score = score_rfm
-        elif mode == '2':
-            score = score_obj_small
-        elif mode == '3':
-            score = score_obj_medium
-        elif mode == '4':
-            score = score_obj_large
-        elif mode == '5':
-            score = score_prob_small
-        elif mode == '6':
-            score = score_prob_medium
-        elif mode == '7':
-            score = score_prob_large
-        elif mode == '8':  # Non-YOLO models
-            if class_idx is None:
-                score = logit[:, logit.max(1)[-1]].squeeze()
-            else:
-                score = logit[:, class_idx].squeeze()
-        else:
-            raise ValueError("Invalid mode! Choose a valid mode.")
+        try:
+            score = logitprocessor(logit, yolomode = mode)
+            """Enter a YOLO pixel-wise metric to evaluate:\n"
+             "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
+             "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
+             "Your choice: """
+        except:
+            raise ValueError("Error! You entered neither a logit tensor input nor a YOLO mode as int.")
     
         # Backpropagation and Grad-CAM computation
         self.model_arch.zero_grad()
@@ -192,10 +158,15 @@ class GradCAMpp(GradCAM):
         b, c, h, w = input.size()
 
         logit = self.model_arch(input)
-        if class_idx is None:
-            score = logit[:, logit.max(1)[-1]].squeeze()
-        else:
-            score = logit[:, class_idx].squeeze() 
+
+        try:
+            score = logitprocessor(logit, yolomode = mode)
+            """Enter a YOLO pixel-wise metric to evaluate:\n"
+             "1.rfm, 2.obj_small, 3.obj_medium, 4.obj_large,\n"
+             "5.prob_small, 6.prob_medium, 7.prob_large, 8.non-Yolo\n"
+             "Your choice: """
+        except:
+            raise ValueError("Error! You entered neither a logit tensor input nor a YOLO mode as int.")
             
         self.model_arch.zero_grad()
         score.backward(retain_graph=retain_graph)
