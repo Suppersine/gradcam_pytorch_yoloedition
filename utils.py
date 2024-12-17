@@ -20,19 +20,19 @@ def logitprocessor(logit, yolomode, class_idx = None):
         score = score_obj_large
     elif yolomode == '5':
         if class_idx is not None: # For a specific class
-            score_prob_medium = logit[1][1][..., 5:].squeeze()[..., class_idx].max()
+            score_prob_small = logit[1][1][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_small = logit[1][0][..., 5:].squeeze().max()
         score = score_prob_small
     elif yolomode == '6':
         if class_idx is not None: # For a specific class
-            score_prob_large = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
+            score_prob_medium = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_medium = logit[1][1][..., 5:].squeeze().max()
         score = score_prob_medium
     elif yolomode == '7':
         if class_idx is not None: # For a specific class
-            score_prob_small = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
+            score_prob_large = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_large = logit[1][2][..., 5:].squeeze().max()
         score = score_prob_large
