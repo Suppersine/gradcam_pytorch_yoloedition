@@ -73,11 +73,23 @@ class GradCAM(object):
 
 
 
-    def forward(self, input, class_idx=None, yolomode='8', retain_graph=False):
+    def forward(self, input, class_idx=None, yolomode='12', retain_graph=False):
         b, c, h, w = input.size()
         logit = self.model_arch(input)
-        debugtensor = logit[1].squeeze().max()
-        print(debugtensor.size())
+        debugtensor_all = logit
+        debugtensor_rfm = logit[0]
+        debugtensor = logit[1]
+
+        if yolomode == '1': #print to debug output tensors
+            print(f'logit: {len(debugtensor_all)} // {type(debugtensor_all)}')
+            print(f'logit[0] Backbone RFM: {len(debugtensor_rfm)} // {debugtensor_rfm.size()} // {type(debugtensor_rfm)}')
+            print(f'logit[1]: {len(debugtensor)} // {type(debugtensor)}')
+            print(f'logit[1][0]: {len(debugtensor[0])} // {type(debugtensor[0])}')
+            print(f'logit[1][1] Detection Head RFM: {len(debugtensor[1])} // {debugtensor[1].size()}// {type(debugtensor[1])}')
+            print(f'logit[1][0][0] OBB-Obj-large: {len(debugtensor[0][0])} // {debugtensor[0][0].size()} // {type(debugtensor[0][0])}')
+            print(f'logit[1][0][1] OBB-Obj-medium: {len(debugtensor[0][1])} // {debugtensor[0][1].size()} // {type(debugtensor[0][1])}')
+            print(f'logit[1][0][2] OBB-Obj-small: {len(debugtensor[0][2])} // {debugtensor[0][2].size()} // {type(debugtensor[0][2])}')
+
         try:
             score = logitprocessor(logit, yolomode = yolomode, class_idx = class_idx)
             """Enter a YOLO pixel-wise metric to evaluate:\n"
@@ -147,7 +159,7 @@ class GradCAMpp(GradCAM):
     def __init__(self, model_dict, verbose=False):
         super(GradCAMpp, self).__init__(model_dict, verbose)
 
-    def forward(self, input, class_idx=None, yolomode='8', retain_graph=False):
+    def forward(self, input, class_idx=None, yolomode='1', retain_graph=False):
         """
         Args:
             input: input image with shape of (1, 3, H, W)
