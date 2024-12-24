@@ -76,8 +76,8 @@ class GradCAM(object):
     def forward(self, input, class_idx=None, yolomode='8', retain_graph=False):
         b, c, h, w = input.size()
         logit = self.model_arch(input)
-        debugtensor = logit[1].squeeze()
-        print(logit[1].size())
+        debugtensor = logit[1].squeeze().max()
+        print(debugtensor.size())
         try:
             score = logitprocessor(logit, yolomode = yolomode, class_idx = class_idx)
             """Enter a YOLO pixel-wise metric to evaluate:\n"
