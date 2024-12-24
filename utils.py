@@ -2,14 +2,32 @@ import cv2
 import numpy as np
 import torch
 
+def detuple(data):
+    """
+    Recursively detuples nested tuples until a tensor or a list of tensors is found.
+    """
+    if isinstance(data, tuple):
+        if all(isinstance(x, torch.Tensor) for x in data):
+            # If all elements are tensors, return the first one.
+            # Modify this if you need a different element from the tuple.
+            return data[0]
+        else:
+            # Recursively detuple nested tuples
+            return [detuple(x) for x in data]
+    elif isinstance(data, list):
+        # If it's a list, recursively detuple its elements.
+        return [detuple(x) for x in data]
+    else:
+        # If it's not a tuple or a list, return as is.
+        return data
 
 def logitprocessor(logit, yolomode, class_idx = None):
     
     # Programmatically select score based on yolomode
-    if yolomode == '1': # Case 1: Raw Feature Map
+    if yolomode == '1': # Case 1: Backbone Raw Feature Map
         score_rfm = logit[0].squeeze().mean()  # Global average
         score = score_rfm
-    elif yolomode == '2': # Case 2: Objectness Scores
+    elif yolomode == '2': # Case 2: Objectness / Output format: logit[1] = [sz x sz]*[x, y ,w, h, obj_clfloat, clprob * nclass]
         score_obj_small = logit[1][0][..., 4].squeeze().max()  # Max objectness
         score = score_obj_small
     elif yolomode == '3':
@@ -36,18 +54,49 @@ def logitprocessor(logit, yolomode, class_idx = None):
         else: # Max probability across all classes
             score_prob_large = logit[1][2][..., 5:].squeeze().max()
         score = score_prob_large
-    elif yolomode == '8':  # Case 4: non-YOLO models
+    elif yolomode == '8':  # Case 8: non-YOLO models
         if class_idx is None:
             score_nonyolo = logit[:, logit.max(1)[-1]].squeeze()
         else:
             score_nonyolo = logit[:, class_idx].squeeze()
         score = score_nonyolo
+    elif yolomode == '9': # Case 9: OBB Detection Head Raw Feature Map
+        score_rfm = logit[1][1].squeeze().mean()  # Global average
+        score = score_rfm
+    elif yolomode == '10': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass]
+        score_obj_large = logit[1][0][0][..., 5].squeeze().max()  # Max objectness
+        score = score_obj_large
+    elif yolomode == '11': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass]
+        score_obj_medium = logit[1][0][1][..., 5].squeeze().max()  # Max objectness
+        score = score_obj_medium
+    elif yolomode == '12': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass]
+        score_obj_small = logit[1][0][2][..., 5].squeeze().max()  # Max objectness
+        score = score_obj_small
+    elif yolomode == '13':
+        if class_idx is not None: # For a specific class
+            score_prob_large = logit[1][0][0][..., 6:].squeeze()[..., class_idx].max()
+        else: # Max probability across all classes
+            score_prob_large = logit[1][0][0][..., 6:].squeeze().max()
+        score = score_prob_large
+    elif yolomode == '14':
+        if class_idx is not None: # For a specific class
+            score_prob_medium = logit[1][0][1][..., 6:].squeeze()[..., class_idx].max()
+        else: # Max probability across all classes
+            score_prob_medium = logit[1][0][1][..., 6:].squeeze().max()
+        score = score_prob_medium
+    elif yolomode == '15':
+        if class_idx is not None: # For a specific class
+            score_prob_small = logit[1][0][2][..., 6:].squeeze()[..., class_idx].max()
+        else: # Max probability across all classes
+            score_prob_small = logit[1][0][2][..., 6:].squeeze().max()
+        score = score_prob_small
+    
     else:
         raise ValueError("Invalid mode! Choose a valid mode.")
 
     return score
 
-def visualize_cam(mask, img):
+def visualize_cam(mask, img, captions):
     """Make heatmap from mask and synthesize GradCAM result image using heatmap and img.
     Args:
         mask (torch.tensor): mask shape of (1, 1, H, W) and each element has value in range [0, 1]
