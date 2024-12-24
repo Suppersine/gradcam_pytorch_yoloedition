@@ -76,7 +76,7 @@ class GradCAM(object):
     def forward(self, input, class_idx=None, yolomode='8', retain_graph=False):
         b, c, h, w = input.size()
         logit = self.model_arch(input)
-        print(logit[0].size())
+        debugtensor = logit[1].squeeze()
         print(logit[1].size())
         try:
             score = logitprocessor(logit, yolomode = yolomode, class_idx = class_idx)
