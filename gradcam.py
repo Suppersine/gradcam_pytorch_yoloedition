@@ -80,6 +80,8 @@ class GradCAM(object):
         debugtensor_rfm = logit[0]
         debugtensor = logit[1]
 
+        """
+        DEBUGGING PRINTS DISABLED FOR SMOOTH RUNNING
         if yolomode == '1': #print to debug output tensors
             print(f'logit: {len(debugtensor_all)} // {type(debugtensor_all)}')
             print(f'logit[0] Backbone RFM: {len(debugtensor_rfm)} // {debugtensor_rfm.size()} // {type(debugtensor_rfm)}')
@@ -89,6 +91,7 @@ class GradCAM(object):
             print(f'logit[1][0][0] OBB-Obj-large: {len(debugtensor[0][0])} // {debugtensor[0][0].size()} // {type(debugtensor[0][0])}')
             print(f'logit[1][0][1] OBB-Obj-medium: {len(debugtensor[0][1])} // {debugtensor[0][1].size()} // {type(debugtensor[0][1])}')
             print(f'logit[1][0][2] OBB-Obj-small: {len(debugtensor[0][2])} // {debugtensor[0][2].size()} // {type(debugtensor[0][2])}')
+        """
 
         try:
             score = logitprocessor(logit, yolomode = yolomode, class_idx = class_idx)
