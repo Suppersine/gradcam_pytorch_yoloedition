@@ -24,35 +24,35 @@ def detuple(data):
 def logitprocessor(logit, yolomode, class_idx = None):
     
     # Programmatically select score based on yolomode
-    if yolomode == '1': # Case 1: Backbone Raw Feature Map
+    if yolomode == '1': # HBB & OBB Case 1: Backbone Raw Feature Map
         score_rfm = logit[0].squeeze().mean()  # Global average
         score = score_rfm
-    elif yolomode == '2': # Case 2: Objectness / Output format: logit[1] = [sz x sz]*[x, y ,w, h, obj_clfloat, clprob * nclass]
-        score_obj_small = logit[1][0][..., 4].squeeze().max()  # Max objectness
-        score = score_obj_small
-    elif yolomode == '3':
+    elif yolomode == '2': # HBB Case 2: Objectness / Output format: logit[1] = [sz x sz]*[x, y ,w, h, obj_clfloat, clprob * nclass], where sz = 28
+        score_obj_large = logit[1][0][..., 4].squeeze().max()  # Max objectness
+        score = score_obj_large
+    elif yolomode == '3': # HBB Case 3: Objectness / Output format: logit[1] = [sz x sz]*[x, y ,w, h, obj_clfloat, clprob * nclass], where sz = 14
         score_obj_medium = logit[1][1][..., 4].squeeze().max() # Max objectness
         score = score_obj_medium
-    elif yolomode == '4':
+    elif yolomode == '4': # HBB Case 4: Objectness / Output format: logit[1] = [sz x sz]*[x, y ,w, h, obj_clfloat, clprob * nclass], where sz = 7, which correlates to object sizes
         score_obj_large = logit[1][2][..., 4].squeeze().max() # Max objectness
-        score = score_obj_large
-    elif yolomode == '5':
+        score = score_obj_small
+    elif yolomode == '5': # HBB Case 5: Class Probabilities - Large Filter 28*28 (for large objects)
         if class_idx is not None: # For a specific class
-            score_prob_small = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
+            score_prob_large = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
-            score_prob_small = logit[1][0][..., 5:].squeeze().max()
+            score_prob_large = logit[1][0][..., 5:].squeeze().max()
         score = score_prob_small
-    elif yolomode == '6':
+    elif yolomode == '6': # HBB Case 6: Class Probabilities - Medium Filter 14*14 (for medium objects)
         if class_idx is not None: # For a specific class
             score_prob_medium = logit[1][1][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_medium = logit[1][1][..., 5:].squeeze().max()
         score = score_prob_medium
-    elif yolomode == '7':
+    elif yolomode == '7': # HBB Case 7: Class Probabilities - Small Filter 7*7 (for small objects)
         if class_idx is not None: # For a specific class
-            score_prob_large = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
+            score_prob_small = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
-            score_prob_large = logit[1][2][..., 5:].squeeze().max()
+            score_prob_small = logit[1][2][..., 5:].squeeze().max()
         score = score_prob_large
     elif yolomode == '8':  # Case 8: non-YOLO models
         if class_idx is None:
@@ -63,28 +63,28 @@ def logitprocessor(logit, yolomode, class_idx = None):
     elif yolomode == '9': # Case 9: OBB Detection Head Raw Feature Map
         score_rfm = logit[1][1].squeeze().mean()  # Global average
         score = score_rfm
-    elif yolomode == '10': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass]
+    elif yolomode == '10': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass], where sz = 28
         score_obj_large = logit[1][0][0][..., 5].squeeze().max()  # Max objectness
         score = score_obj_large
-    elif yolomode == '11': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass]
+    elif yolomode == '11': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass], where sz = 14
         score_obj_medium = logit[1][0][1][..., 5].squeeze().max()  # Max objectness
         score = score_obj_medium
-    elif yolomode == '12': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass]
+    elif yolomode == '12': #obb-obj Output format: logit[1][0][sz] = [sz x sz]*[x, y ,w, h, theta, obj_clfloat, clprob * nclass], where sz = 7
         score_obj_small = logit[1][0][2][..., 5].squeeze().max()  # Max objectness
         score = score_obj_small
-    elif yolomode == '13':
+    elif yolomode == '13': # Class Prob for [28*28] OBB filter
         if class_idx is not None: # For a specific class
             score_prob_large = logit[1][0][0][..., 6:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_large = logit[1][0][0][..., 6:].squeeze().max()
         score = score_prob_large
-    elif yolomode == '14':
+    elif yolomode == '14': # Class Prob for [14*14] OBB filter
         if class_idx is not None: # For a specific class
             score_prob_medium = logit[1][0][1][..., 6:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_medium = logit[1][0][1][..., 6:].squeeze().max()
         score = score_prob_medium
-    elif yolomode == '15':
+    elif yolomode == '15': # Class Prob for [7*7] OBB filter
         if class_idx is not None: # For a specific class
             score_prob_small = logit[1][0][2][..., 6:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
@@ -113,8 +113,18 @@ def visualize_cam(mask, img, captions):
     
     result = heatmap+img.cpu()
     result = result.div(result.max()).squeeze()
-    
-    return heatmap, result
+
+    # Create a black background for the caption banner
+    banner_width = img.shape[3]  # Use image width for banner width
+    banner_height = img.shape[2]  # Adjust banner height as needed
+    banner = Image.new('RGB', (banner_width, banner_height), (0, 0, 0))  # Black background
+
+    # Draw captions on the banner
+    draw = ImageDraw.Draw(banner)
+    font = ImageFont.truetype("arial.ttf", 20)  # Replace with your font path
+    draw.text((10, 10), captions, (255, 255, 255), font=font)  # White text
+
+    return heatmap, result, caption_img
 
 
 def find_resnet_layer(arch, target_layer_name):
@@ -329,7 +339,7 @@ def find_yolo_layer(model_arch, layer_name):
 
     return target_layer
 
-
+    
 class Normalize(object):
     def __init__(self, mean, std):
         self.mean = mean
