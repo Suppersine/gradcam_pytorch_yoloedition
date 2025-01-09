@@ -1,8 +1,8 @@
+from PIL import Image, ImageDraw, ImageFont
+from torchvision.transforms.functional import to_tensor
 import cv2
 import numpy as np
 import torch
-import cv2
-from PIL import Image, ImageDraw, ImageFont
 
 def detuple(data):
     """
@@ -123,9 +123,15 @@ def visualize_cam(mask, img, captions):
 
     # Draw captions on the banner
     draw = ImageDraw.Draw(banner)
-    font = ImageFont.truetype("arial.ttf", 20)  # Replace with your font path
+    try:
+        font = ImageFont.truetype("arial.ttf", 20)  # Replace with your font path if needed
+    except OSError:
+        font = ImageFont.load_default()  # Use default font if arial.ttf not found
     draw.text((10, 10), captions, (255, 255, 255), font=font)  # White text
 
+    # Convert banner to tensor
+    banner_tensor = to_tensor(banner)
+    
     return heatmap, result, banner
 
 
