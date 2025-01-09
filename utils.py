@@ -43,7 +43,7 @@ def logitprocessor(logit, yolomode, class_idx = None):
             score_prob_large = logit[1][0][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_large = logit[1][0][..., 5:].squeeze().max()
-        score = score_prob_small
+        score = score_prob_large
     elif yolomode == '6': # HBB Case 6: Class Probabilities - Medium Filter 14*14 (for medium objects)
         if class_idx is not None: # For a specific class
             score_prob_medium = logit[1][1][..., 5:].squeeze()[..., class_idx].max()
@@ -55,7 +55,7 @@ def logitprocessor(logit, yolomode, class_idx = None):
             score_prob_small = logit[1][2][..., 5:].squeeze()[..., class_idx].max()
         else: # Max probability across all classes
             score_prob_small = logit[1][2][..., 5:].squeeze().max()
-        score = score_prob_large
+        score = score_prob_small
     elif yolomode == '8':  # Case 8: non-YOLO models
         if class_idx is None:
             score_nonyolo = logit[:, logit.max(1)[-1]].squeeze()
