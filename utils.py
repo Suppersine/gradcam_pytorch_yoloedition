@@ -36,7 +36,7 @@ def logitprocessor(logit, yolomode, class_idx = None):
         score_obj_medium = logit[1][1][..., 4].squeeze().max() # Max objectness
         score = score_obj_medium
     elif yolomode == '4': # HBB Case 4: Objectness / Output format: logit[1] = [sz x sz]*[x, y ,w, h, obj_clfloat, clprob * nclass], where sz = 7, which correlates to object sizes
-        score_obj_large = logit[1][2][..., 4].squeeze().max() # Max objectness
+        score_obj_small = logit[1][2][..., 4].squeeze().max() # Max objectness
         score = score_obj_small
     elif yolomode == '5': # HBB Case 5: Class Probabilities - Large Filter 28*28 (for large objects)
         if class_idx is not None: # For a specific class
@@ -130,9 +130,13 @@ def visualize_cam(mask, img, captions):
     draw.text((10, 10), captions, (255, 255, 255), font=font)  # White text
 
     # Convert banner to tensor
-    banner_tensor = to_tensor(banner)
+    banner_array = np.array(banner)
+    banner_tensor = torch.from_numpy(banner_array).permute(2, 0, 1).float().div(255)
+
+    print(heatmap.size())
+    print(banner_tensor.size())
     
-    return heatmap, result, banner
+    return heatmap, result, banner_tensor
 
 
 def find_resnet_layer(arch, target_layer_name):
