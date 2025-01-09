@@ -124,7 +124,7 @@ def visualize_cam(mask, img, captions):
     font = ImageFont.truetype("arial.ttf", 20)  # Replace with your font path
     draw.text((10, 10), captions, (255, 255, 255), font=font)  # White text
 
-    return heatmap, result, caption_img
+    return heatmap, result, banner
 
 
 def find_resnet_layer(arch, target_layer_name):
